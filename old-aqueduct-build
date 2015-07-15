@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+
+from os import popen, path, listdir, remove
+import tarfile
+
+
+
+dir_in = '/home/vallery/Desktop/conduit/aqueduct/aqueduct-build/intake'
+dir_build = '/home/vallery/Desktop/conduit/aqueduct/aqueduct-build/build'
+dir_out = '/home/vallery/Desktop/conduit/aqueduct/aqueduct-build/built'
+
+
+
+def pbuilder_basetgz_exists(release):
+	return path.exists('/var/cache/pbuilder/' + release + '.base.tgz')
+
+
+def pbuilder_basetgz_create(release):
+	print(popen('pbuilder --create --distribution ' + release + ' --basetgz /var/cache/pbuilder/' + release + '.base.tgz').read())
+
+
+def pbuilder_basetgz_update(release):
+	print(popen('pbuilder --update --distribution ' + release + ' --basetgz /var/cache/pbuilder/' + release + '.base.tgz').read())
+
+
+def pbuilder_build(release):
+	print(popen('pbuilder --debuild --distribution ' + release + ' --basetgz /var/cache/pbuilder/' + release + '.base.tgz').read())
+
+
+
+for f in listdir(dir_in):
+	filepath = path.join(dir_in, f)
+	if path.isfile(filepath):
+		tfile = tarfile.open(filepath, 'r:gz')
+		tfile.extractall(dir_build)
+		#remove(filepath)
+
+
+for d in listdir(dir_build):
+	dirpath = path.join(dir_build, d)
+	if path.isdir(dirpath):
+		release_file = path.join(dirpath, 'AqueductBuild')
+		f = open(release_file, 'r')
+		release = f.read().strip()
+		f.close()
+		remove(release_file)
+
+		if not pbuilder_basetgz_exists(release):
+			pbuilder_basetgz_create(release)
+		else:
+			pbuilder_basetgz_update(release)

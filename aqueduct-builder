@@ -1,0 +1,55 @@
+#!/usr/bin/python3
+
+import json
+from bottle import route, run, request#, static_file
+
+
+
+conf = {
+'arch' : 'amd64',
+'version' : '0.1.0',
+'dirs' : {
+	'intake' : '/home/vallery/Desktop/conduit/aqueduct/aqueduct-build/intake'
+	}
+}
+
+
+
+@route('/', method='GET')
+def get_info():
+	info = {
+		'name' : 'aqueduct-builder',
+		'version' : conf['version'],
+		'arch' : conf['arch']
+		}
+	return json.dumps(info)
+
+
+
+@route('/build/submit', method='POST')
+def build_submit():
+	upload = request.files.data
+	callbackurl = request.forms.get('callbackurl')
+
+	if not upload or not upload.file:
+		return {'success' : False, 'message' : 'No file supplied'}
+	elif not callbackurl:
+		return {'success' : False, 'message' : 'No callback url supplied'}
+
+	upload.save(conf['dir']['intake'])
+
+
+
+@route('/build/<build_id>/log')
+def build_log(build_id):
+	return "not implimented yet"
+
+
+
+@route('/build/<build_id>/result')
+def build_result(build_id):
+	return "not implimented yet"
+
+
+
+run(host='', port=6501, debug=True)
