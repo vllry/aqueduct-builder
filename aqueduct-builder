@@ -2,16 +2,7 @@
 
 import json
 from bottle import route, run, request#, static_file
-
-
-
-conf = {
-'arch' : 'amd64',
-'version' : '0.1.0',
-'dirs' : {
-	'intake' : '/home/vallery/Desktop/conduit/aqueduct/aqueduct-build/intake'
-	}
-}
+from libaqueductbuilder import conf, pkg_build
 
 
 
@@ -37,6 +28,7 @@ def build_submit():
 		return {'success' : False, 'message' : 'No callback url supplied'}
 
 	upload.save(conf['dir']['intake'])
+	pkg_build('deb', conf['dir']['intake']+'/'+upload.filename)
 
 
 
@@ -52,4 +44,4 @@ def build_result(build_id):
 
 
 
-run(host='', port=6501, debug=True)
+run(host='', port=conf['port'], debug=True)
