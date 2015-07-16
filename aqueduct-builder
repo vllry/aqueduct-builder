@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
+from threading import Thread
 import json
 from bottle import route, run, request#, static_file
-from libaqueductbuilder import conf, pkg_build
+from libaqueductbuilder import conf, pkg_build, db_new_build_id
 
 
 
@@ -21,14 +22,18 @@ def get_info():
 def build_submit():
 	upload = request.files.data
 	callbackurl = request.forms.get('callbackurl')
+	os = request.forms.get('os')
+	release = request.forms.get('release')
 
 	if not upload or not upload.file:
 		return {'success' : False, 'message' : 'No file supplied'}
 	elif not callbackurl:
-		return {'success' : False, 'message' : 'No callback url supplied'}
+		return {'success' : False, 'message' : 'No callbackurl supplied'}
 
 	upload.save(conf['dir']['intake'])
-	pkg_build('deb', conf['dir']['intake']+'/'+upload.filename)
+	t = Thread(target=pkg_build, args=(os,release,conf['dir']['intake']+'/'+upload.filename,))
+	t.start()
+	return str(db_new_build_id(os, release, upload.filename))
 
 
 

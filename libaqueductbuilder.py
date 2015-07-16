@@ -2,11 +2,22 @@
 
 import json
 import tarfile
+import sqlite3
+from os import path, popen
 
 
 
 conf = json.load(open('aqueduct-builder.conf'))
 
+
+
+def db_new_build_id(os, release, submitted_file):
+	con = sqlite3.connect('aqueduct-builder.sqlite')
+	cur = con.cursor()   
+	cur.execute("INSERT INTO builds (os, release, submitted_file) VALUES('%s', '%s', '%s')" % (os,release,submitted_file))
+	con.commit()
+	cur.execute("SELECT last_insert_rowid()")
+	return cur.fetchone()
 
 
 def pbuilder_basetgz_exists(release):
@@ -30,20 +41,15 @@ def untar(path, dest):
 	tfile.extractall(dest)
 
 
-def pkg_build(pkg_type, path):
+def pkg_build(os, release, path):
 	untar(path, conf['dir']['processing'])
 	filename = path.split('/')[-1]
-	print(filename)
 
-	#dirpath = path.join(conf['dir']['processing'], )
-	#if path.isdir(dirpath):
-	#	release_file = path.join(dirpath, 'AqueductBuild')
-	#	f = open(release_file, 'r')
-	#	release = f.read().strip()
-	#	f.close()
-	#	remove(release_file)
-#
-#		if not pbuilder_basetgz_exists(release):
-#			pbuilder_basetgz_create(release)
-#		else:
-#			pbuilder_basetgz_update(release)
+	if os == "debian":
+		if not pbuilder_basetgz_exists(release):
+			pbuilder_basetgz_create(release)
+		else:
+			pbuilder_basetgz_update(release)
+
+	else:
+		print('Unsupported os: ' + os)
