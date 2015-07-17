@@ -2,15 +2,22 @@
 
 from threading import Thread
 import json
+from sys import exit
+from os import getuid
 from bottle import route, run, request#, static_file
-from libaqueductbuilder import conf, pkg_build, db_new_build_id
+import libaqueductbuilder as builder
+
+
+
+conf = builder.conf
 
 
 
 @route('/', method='GET')
 def get_info():
 	info = {
-		'name' : 'aqueduct-builder',
+		'service' : 'aqueduct-builder',
+		'name' : conf['name'],
 		'version' : conf['version'],
 		'arch' : conf['arch']
 		}
@@ -26,14 +33,22 @@ def build_submit():
 	release = request.forms.get('release')
 
 	if not upload or not upload.file:
-		return {'success' : False, 'message' : 'No file supplied'}
+		return {'success': False, 'message': 'No file supplied'}
 	elif not callbackurl:
-		return {'success' : False, 'message' : 'No callbackurl supplied'}
+		return {'success': False, 'message': 'No callbackurl supplied'}
+	elif callbackurl.find('%url') == -1:
+		return {'success': False, 'message': 'callbackurl must contain %url'}
 
 	upload.save(conf['dir']['intake'])
-	t = Thread(target=pkg_build, args=(os,release,conf['dir']['intake']+'/'+upload.filename,))
+	path_to_source = conf['dir']['intake'] + '/' + upload.filename
+	t = Thread(target=builder.pkg_build, args=(os,release,path_to_source,))
 	t.start()
-	return str(db_new_build_id(os, release, upload.filename))
+
+	return {
+			'success': True,
+			'message': 'Job successfully submitted',
+			'id': builder.db_new_build_id(os, release, upload.filename)
+			}
 
 
 
@@ -49,4 +64,7 @@ def build_result(build_id):
 
 
 
+if getuid() != 0:
+	print('Please run aqueduct-builder as root')
+	exit(1)
 run(host='', port=conf['port'], debug=True)
