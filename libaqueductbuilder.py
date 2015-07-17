@@ -27,9 +27,9 @@ def db_new_build_id(os, release, submitted_file):
 def pbuilder_debuild(buildid, filepath, release):
 	tgz = conf['path']['basetgz'] % (release)
 	dir_result = conf['dir']['result'] % str(buildid)
-	mkdir(result)
+	mkdir(dir_result)
 	chdir(filepath)
-	popen('pdebuild -- --basetgz %s --result %s > %sbuild.log' % (tgz, dir_result, dir_result))
+	popen('pdebuild -- --basetgz %s --buildresult %s > %sbuild.log' % (tgz, dir_result, dir_result))
 
 
 
@@ -61,7 +61,7 @@ def untar(filepath, dest):
 
 
 
-def pkg_build(os, release, filepath):
+def pkg_build(buildid, os, release, filepath):
 	filepath = untar(filepath, conf['dir']['processing'])
 	filepath = conf['dir']['processing'] + filepath
 
@@ -71,7 +71,7 @@ def pkg_build(os, release, filepath):
 		#else:
 			#pbuilder_basetgz_update(release)
 
-		pbuilder_debuild(filepath, release)
+		pbuilder_debuild(buildid, filepath, release)
 
 	else:
 		print('Unsupported os: ' + os)
