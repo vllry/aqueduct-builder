@@ -3,7 +3,7 @@
 import json
 import tarfile
 import sqlite3
-from os import path, popen, remove, chdir, mkdir
+from os import path, popen, remove, chdir, mkdir, listdir
 
 
 
@@ -21,6 +21,16 @@ def db_new_build_id(os, release, submitted_file):
 	con.commit()
 	cur.execute("SELECT last_insert_rowid()")
 	return cur.fetchone()[0]
+
+
+
+def get_build_file_that_ends_in(buildid, suffix):
+	contents = listdir(conf['dir']['result']%buildid)
+	cantidates = [s for s in contents if s.endswith(suffix)]
+	if len(cantidates):
+		return cantidates[0], conf['dir']['result'] % buildid
+	else:
+		return None
 
 
 

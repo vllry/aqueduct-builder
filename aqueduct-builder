@@ -5,7 +5,7 @@ import json
 from sys import exit
 from os import getuid
 from platform import dist
-from bottle import route, run, request#, static_file
+from bottle import route, run, request, static_file, abort
 import libaqueductbuilder as builder
 
 
@@ -20,7 +20,8 @@ def get_info():
 		'service' : 'aqueduct-builder',
 		'name' : conf['name'],
 		'version' : conf['version'],
-		'arch' : conf['arch']
+		'arch' : conf['arch'],
+		'os' : dist()[0]
 		}
 	return json.dumps(info)
 
@@ -43,7 +44,7 @@ def build_submit():
 	upload.save(conf['dir']['intake'])
 	buildid = builder.db_new_build_id(os, release, upload.filename)
 	path_to_source = conf['dir']['intake'] + upload.filename
-	t = Thread(target=builder.pkg_build, args=(buildid, os,release,path_to_source,))
+	t = Thread(target=builder.pkg_build, args=(buildid,os,release,path_to_source,))
 	t.start()
 
 	return {
@@ -54,15 +55,49 @@ def build_submit():
 
 
 
-@route('/build/<build_id>/log')
-def build_log(build_id):
-	return "not implimented yet"
+@route('/build/<buildid>/log')
+def get_build_log(buildid):
+	return static_file('build.log', conf['dir']['result'] % buildid)
 
 
 
-@route('/build/<build_id>/result')
-def build_result(build_id):
-	return "not implimented yet"
+@route('/build/<buildid>/deb')
+def get_build_deb(buildid):
+	filename = builder.get_build_file_that_ends_in(buildid, '.deb')
+	if filename:
+		return static_file(filename[0], filename[1])
+	else:
+		abort(404, 'No file exists, perhaps the build failed?')
+
+
+
+@route('/build/<buildid>/tarball')
+def get_build_tarball(buildid):
+	filename = builder.get_build_file_that_ends_in(buildid, '.tar.xz')
+	if filename:
+		return static_file(filename[0], filename[1])
+	else:
+		abort(404, 'No file exists, perhaps the build failed?')
+
+
+
+@route('/build/<buildid>/dsc')
+def get_build_dsc(buildid):
+	filename = builder.get_build_file_that_ends_in(buildid, '.dsc')
+	if filename:
+		return static_file(filename[0], filename[1])
+	else:
+		abort(404, 'No file exists, perhaps the build failed?')
+
+
+
+@route('/build/<buildid>/changes')
+def get_build_changes(buildid):
+	filename = builder.get_build_file_that_ends_in(buildid, '.changes')
+	if filename:
+		return static_file(filename[0], filename[1])
+	else:
+		abort(404, 'No file exists, perhaps the build failed?')
 
 
 
