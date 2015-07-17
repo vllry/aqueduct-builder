@@ -4,6 +4,7 @@ from threading import Thread
 import json
 from sys import exit
 from os import getuid
+from platform import dist
 from bottle import route, run, request#, static_file
 import libaqueductbuilder as builder
 
@@ -40,7 +41,7 @@ def build_submit():
 		return {'success': False, 'message': 'callbackurl must contain %url'}
 
 	upload.save(conf['dir']['intake'])
-	path_to_source = conf['dir']['intake'] + '/' + upload.filename
+	path_to_source = conf['dir']['intake'] + upload.filename
 	t = Thread(target=builder.pkg_build, args=(os,release,path_to_source,))
 	t.start()
 
