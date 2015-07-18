@@ -40,10 +40,14 @@ def build_submit():
 		return {'success': False, 'message': 'No callbackurl supplied'}
 	elif callbackurl.find('%url') == -1:
 		return {'success': False, 'message': 'callbackurl must contain %url'}
+	elif callbackurl.find('%success') == -1:
+		return {'success': False, 'message': 'callbackurl must contain %success'}
 
 	upload.save(conf['dir']['intake'])
-	buildid = builder.db_new_build_id(os, release, upload.filename)
+	buildid = builder.db_build_new(os, release, upload.filename, callbackurl)
+	builder.db_progress_tarfile(buildid, upload.filename)
 	path_to_source = conf['dir']['intake'] + upload.filename
+
 	t = Thread(target=builder.pkg_build, args=(buildid,os,release,path_to_source,))
 	t.start()
 
