@@ -1,0 +1,15 @@
+CREATE TABLE builds(
+id INT AUTO_INCREMENT,
+os VARCHAR NOT NULL,
+release VARCHAR NOT NULL,
+PRIMARY KEY(id)
+);
+
+CREATE TABLE progress(
+id INT,
+tarfile VARCHAR,
+extracted VARCHAR,
+callbackurl VARCHAR,
+PRIMARY KEY(id),
+FOREIGN KEY(id) REFERENCES builds(id) ON DELETE CASCADE
+);
