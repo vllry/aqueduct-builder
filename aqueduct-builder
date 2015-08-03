@@ -31,6 +31,8 @@ def get_info():
 def build_submit():
 	upload = request.files.data
 	callbackurl = request.forms.get('callbackurl')
+	jobid = request.forms.get('jobid')
+	arch = request.forms.get('arch')
 	os = request.forms.get('os')
 	release = request.forms.get('release')
 
@@ -38,17 +40,21 @@ def build_submit():
 		return {'success': False, 'message': 'No file supplied'}
 	elif not callbackurl:
 		return {'success': False, 'message': 'No callbackurl supplied'}
-	elif callbackurl.find('%url') == -1:
-		return {'success': False, 'message': 'callbackurl must contain %url'}
-	elif callbackurl.find('%success') == -1:
-		return {'success': False, 'message': 'callbackurl must contain %success'}
+	elif not jobid:
+		return {'success': False, 'message': 'No jobid supplied'}
+	elif not arch:
+		return {'success': False, 'message': 'No arch supplied'}
+	elif not os:
+		return {'success': False, 'message': 'No os supplied'}
+	elif not release:
+		return {'success': False, 'message': 'No release supplied'}
 
 	upload.save(conf['dir']['intake'])
 	buildid = builder.db_build_new(os, release, upload.filename, callbackurl)
 	builder.db_progress_tarfile(buildid, upload.filename)
 	path_to_source = conf['dir']['intake'] + upload.filename
 
-	t = Thread(target=builder.pkg_build, args=(buildid,os,release,path_to_source,))
+	t = Thread(target=builder.pkg_build, args=(buildid,jobid,arch,os,release,path_to_source,))
 	t.start()
 
 	return {

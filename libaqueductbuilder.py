@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-import urllib.request
 import json
+import requests
 import tarfile
 import sqlite3
 from os import path, popen, remove, chdir, mkdir, listdir
@@ -69,18 +69,36 @@ def get_build_file_that_ends_in(buildid, suffix):
 
 
 
-def build_callback(buildid):
+def post(url, postdata):
+	r = requests.post(
+		url,
+		postdata
+	)
+	return r.text
+
+
+
+def build_callback(buildid, jobid, arch, os, release):
 	con = db_con()
 	cur = con.cursor()
 	cur.execute("SELECT callbackurl FROM progress WHERE id=%s" % buildid)
 	url = cur.fetchone()[0]
 
-	deb_location = conf['address'] + 'build/%s/deb' % buildid
-	success = '0'
+	location = conf['address'] + 'build/%s/' % buildid
+	success = False
 	if get_build_file_that_ends_in(buildid, '.deb'):
-		success = '1'
+		success = True
 
-	urllib.request.urlopen(url.replace('%success', success).replace('%url',deb_location))
+	data = {
+		'success' : success,
+		'location' : location,
+		'jobid' : jobid,
+		'arch' : arch,
+		'os' : os,
+		'release' : release
+	}
+	print("Sending callback to " + url)
+	post(url, data)
 
 
 
@@ -89,7 +107,7 @@ def pbuilder_debuild(buildid, filepath, release):
 	dir_result = conf['dir']['result'] % str(buildid)
 	mkdir(dir_result)
 	chdir(filepath)
-	popen('pdebuild -- --basetgz %s --buildresult %s > %sbuild.log' % (tgz, dir_result, dir_result))
+	print(popen('pdebuild -- --basetgz %s --buildresult %s' % (tgz, dir_result)).read())
 
 
 
@@ -121,19 +139,21 @@ def untar(filepath, dest):
 
 
 
-def pkg_build(buildid, os, release, filepath):
+def pkg_build(buildid, jobid, arch, os, release, filepath):
 	filepath = untar(filepath, conf['dir']['processing'])
 	filepath = conf['dir']['processing'] + filepath
 	db_progress_extracted(buildid, filepath)
 
 	if os in ('debian', 'ubuntu'):
 		if not pbuilder_basetgz_exists(release):
+			print("Creating basetgz " + release)
 			pbuilder_basetgz_create(release)
 		#else:
 			#pbuilder_basetgz_update(release)
 
+		print('Running debuild')
 		pbuilder_debuild(buildid, filepath, release)
-		build_callback(buildid)
+		build_callback(buildid, jobid, arch, os, release)
 		db_progress_done(buildid)
 
 	else:
