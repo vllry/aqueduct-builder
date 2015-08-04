@@ -50,8 +50,7 @@ def build_submit():
 		return {'success': False, 'message': 'No release supplied'}
 
 	upload.save(conf['dir']['intake'])
-	buildid = builder.db_build_new(os, release, upload.filename, callbackurl)
-	builder.db_progress_tarfile(buildid, upload.filename)
+	buildid = builder.db_build_new()
 	path_to_source = conf['dir']['intake'] + upload.filename
 
 	t = Thread(target=builder.pkg_build, args=(buildid,jobid,arch,os,release,path_to_source,))

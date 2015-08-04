@@ -16,46 +16,27 @@ for d in conf['dir']: #Ensure all dirs have a trailing slash
 
 
 
-def db_con():
+def _db_con():
 	return sqlite3.connect(conf['path']['sqlite'])
 
 
 
-def db_build_new(os, release, submitted_file, callbackurl):
-	con = db_con()
+def _db_create_environment():
+	con = _db_con()
 	cur = con.cursor()   
-	cur.execute("INSERT INTO builds (os, release) VALUES('%s', '%s')" % (os,release))
+	cur.execute("CREATE TABLE IF NOT EXISTS builds (id INT AUTO_INCREMENT PRIMARY KEY)")
+	con.commit()
+
+
+
+def db_build_new():
+	con = _db_con()
+	cur = con.cursor()   
+	cur.execute("INSERT INTO builds ()")
 	con.commit()
 	cur.execute("SELECT last_insert_rowid()")
 	buildid = cur.fetchone()[0]
-	cur.execute("INSERT INTO progress (id, callbackurl) VALUES('%s', '%s')" % (buildid,callbackurl))
-	con.commit()
 	return buildid
-
-
-
-def db_progress_tarfile(buildid, filename):
-	con = db_con()
-	cur = con.cursor()
-	cur.execute("UPDATE progress SET tarfile='%s' WHERE id=%s" % (filename, buildid))
-	con.commit()
-
-
-
-def db_progress_extracted(buildid, filename):
-	con = db_con()
-	cur = con.cursor()
-	cur.execute("UPDATE progress SET extracted='%s' WHERE id=%s" % (filename, buildid))
-	cur.execute("UPDATE progress SET tarfile=NULL WHERE id=%s" % (buildid))
-	con.commit()
-
-
-
-def db_progress_done(buildid):
-	con = db_con()
-	cur = con.cursor()
-	cur.execute("DELETE FROM progress WHERE id=%s" % (buildid))
-	con.commit()
 
 
 
@@ -78,12 +59,7 @@ def post(url, postdata):
 
 
 
-def build_callback(buildid, jobid, arch, os, release):
-	con = db_con()
-	cur = con.cursor()
-	cur.execute("SELECT callbackurl FROM progress WHERE id=%s" % buildid)
-	url = cur.fetchone()[0]
-
+def build_callback(buildid, url, jobid, arch, os, release):
 	location = conf['address'] + 'build/%s/' % buildid
 	success = False
 	if get_build_file_that_ends_in(buildid, '.deb'):
@@ -142,7 +118,6 @@ def untar(filepath, dest):
 def pkg_build(buildid, jobid, arch, os, release, filepath):
 	filepath = untar(filepath, conf['dir']['processing'])
 	filepath = conf['dir']['processing'] + filepath
-	db_progress_extracted(buildid, filepath)
 
 	if os in ('debian', 'ubuntu'):
 		if not pbuilder_basetgz_exists(release):
@@ -154,7 +129,10 @@ def pkg_build(buildid, jobid, arch, os, release, filepath):
 		print('Running debuild')
 		pbuilder_debuild(buildid, filepath, release)
 		build_callback(buildid, jobid, arch, os, release)
-		db_progress_done(buildid)
 
 	else:
 		print('Unsupported os: ' + os)
+
+
+
+_db_create_environment() #Run on load
