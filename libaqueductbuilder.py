@@ -1,6 +1,5 @@
-#!/usr/bin/python
-
 import json
+from platform import dist, uname
 import requests
 import tarfile
 import sqlite3
@@ -13,6 +12,21 @@ conf['address'] = conf['address'].rstrip('/') + ':' + str(conf['port']) + '/'
 for d in conf['dir']: #Ensure all dirs have a trailing slash
 	if conf['dir'][d][-1] != '/':
 		conf['dir'][d] = conf['dir'][d] + '/'
+
+
+
+def get_os():
+	return dist()[0].lower()
+
+
+
+def get_arch():
+	arch = uname()[4]
+	if arch == 'x86':
+		arch = 'i386'
+	elif arch == 'x86_64':
+		arch = 'amd64'
+	return arch
 
 
 
@@ -78,30 +92,30 @@ def build_callback(buildid, url, jobid, arch, os, release):
 
 
 
-def pbuilder_debuild(buildid, filepath, release):
-	tgz = conf['path']['basetgz'] % (release)
+def pbuilder_debuild(buildid, filepath, arch, release):
+	tgz = conf['path']['basetgz'] % (arch, release)
 	dir_result = conf['dir']['result'] % str(buildid)
 	mkdir(dir_result)
 	chdir(filepath)
-	print(popen('pdebuild -- --basetgz %s --buildresult %s' % (tgz, dir_result)).read())
+	print(popen('pdebuild -- --architecture %s --basetgz %s --buildresult %s' % (arch, tgz, dir_result)).read())
 
 
 
-def pbuilder_basetgz_exists(release):
-	tgz = conf['path']['basetgz'] % (release)
+def pbuilder_basetgz_exists(arch, release):
+	tgz = conf['path']['basetgz'] % (arch, release)
 	return path.exists(tgz)
 
 
 
-def pbuilder_basetgz_create(release):
-	tgz = conf['path']['basetgz'] % (release)
-	print(popen('pbuilder --create --distribution %s --basetgz %s' % (release, tgz)).read())
+def pbuilder_basetgz_create(arch, release):
+	tgz = conf['path']['basetgz'] % (arch, release)
+	print(popen('pbuilder --create --architecture %s --distribution %s --basetgz %s' % (arch, release, tgz)).read())
 
 
 
-def pbuilder_basetgz_update(release):
-	tgz = conf['path']['basetgz'] % (release)
-	print(popen('pbuilder --update --distribution %s --basetgz %s' % (release, tgz)).read())
+def pbuilder_basetgz_update(arch, release):
+	tgz = conf['path']['basetgz'] % (arch, release)
+	print(popen('pbuilder --update --architecture %s --distribution %s --basetgz %s' % (arch, release, tgz)).read())
 
 
 
@@ -119,15 +133,19 @@ def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 	filepath = untar(filepath, conf['dir']['processing'])
 	filepath = conf['dir']['processing'] + filepath
 
-	if os in ('debian', 'ubuntu'):
-		if not pbuilder_basetgz_exists(release):
-			print("Creating basetgz " + release)
-			pbuilder_basetgz_create(release)
-		#else:
-			#pbuilder_basetgz_update(release)
+	build_arch = arch
+	if arch == 'all':
+		build_arch = get_arch()
+
+	if os == get_os():
+		if not pbuilder_basetgz_exists(build_arch, release):
+			print("Creating basetgz for %s, %s" % (build_arch, release))
+			pbuilder_basetgz_create(build_arch, release)
+		else:
+			pbuilder_basetgz_update(build_arch, release)
 
 		print('Running debuild')
-		pbuilder_debuild(buildid, filepath, release)
+		pbuilder_debuild(buildid, filepath, build_arch, release)
 		build_callback(buildid, callbackurl, jobid, arch, os, release)
 
 	else:

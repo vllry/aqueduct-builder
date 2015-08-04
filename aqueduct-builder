@@ -4,8 +4,8 @@ from threading import Thread
 import json
 from sys import exit
 from os import getuid
-from platform import dist, uname
 from bottle import route, run, request, static_file, abort
+
 import libaqueductbuilder as builder
 
 
@@ -16,17 +16,12 @@ conf = builder.conf
 
 @route('/', method='GET')
 def get_info():
-	arch = uname()[4]
-	if arch == 'x86':
-		arch = 'i386'
-	elif arch == 'x86_64':
-		arch = 'amd64'
 	info = {
 		'service' : 'aqueduct-builder',
 		'name' : conf['name'],
 		'version' : '{{VERSION}}',
-		'arch' : arch,
-		'os' : dist()[0].lower()
+		'arch' : builder.get_arch(),
+		'os' : builder.get_os()
 		}
 	return json.dumps(info)
 
