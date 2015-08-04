@@ -53,7 +53,7 @@ def build_submit():
 	buildid = builder.db_build_new()
 	path_to_source = conf['dir']['intake'] + upload.filename
 
-	t = Thread(target=builder.pkg_build, args=(buildid,jobid,arch,os,release,path_to_source,))
+	t = Thread(target=builder.pkg_build, args=(buildid,callbackurl,jobid,arch,os,release,path_to_source,))
 	t.start()
 
 	return {

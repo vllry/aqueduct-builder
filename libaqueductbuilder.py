@@ -24,7 +24,7 @@ def _db_con():
 def _db_create_environment():
 	con = _db_con()
 	cur = con.cursor()   
-	cur.execute("CREATE TABLE IF NOT EXISTS builds (id INT AUTO_INCREMENT PRIMARY KEY)")
+	cur.execute("CREATE TABLE IF NOT EXISTS builds (id INT AUTO_INCREMENT PRIMARY KEY, dummy int)")
 	con.commit()
 
 
@@ -32,7 +32,7 @@ def _db_create_environment():
 def db_build_new():
 	con = _db_con()
 	cur = con.cursor()   
-	cur.execute("INSERT INTO builds ()")
+	cur.execute("INSERT INTO builds(dummy) VALUES(42)")
 	con.commit()
 	cur.execute("SELECT last_insert_rowid()")
 	buildid = cur.fetchone()[0]
@@ -115,7 +115,7 @@ def untar(filepath, dest):
 
 
 
-def pkg_build(buildid, jobid, arch, os, release, filepath):
+def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 	filepath = untar(filepath, conf['dir']['processing'])
 	filepath = conf['dir']['processing'] + filepath
 
@@ -128,7 +128,7 @@ def pkg_build(buildid, jobid, arch, os, release, filepath):
 
 		print('Running debuild')
 		pbuilder_debuild(buildid, filepath, release)
-		build_callback(buildid, jobid, arch, os, release)
+		build_callback(buildid, callbackurl, jobid, arch, os, release)
 
 	else:
 		print('Unsupported os: ' + os)
