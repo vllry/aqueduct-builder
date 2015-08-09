@@ -2,7 +2,6 @@ import json
 from platform import dist, uname
 import requests
 import tarfile
-import sqlite3
 from os import path, popen, remove, chdir, mkdir, listdir
 
 
@@ -30,35 +29,26 @@ def get_arch():
 
 
 
-def _db_con():
-	return sqlite3.connect(conf['path']['sqlite'])
+def new_buildid():
+	ids = listdir(conf['dir']['result'])
+	num = 1
+	for i in sorted(ids, reverse=True):
+		try: #Protect against errors caused by nonnumber items
+			num = int(i)
+		except ValueError:
+			pass
+		else:
+			break
 
-
-
-def _db_create_environment():
-	con = _db_con()
-	cur = con.cursor()   
-	cur.execute("CREATE TABLE IF NOT EXISTS builds (id INT AUTO_INCREMENT PRIMARY KEY, dummy int)")
-	con.commit()
-
-
-
-def db_build_new():
-	con = _db_con()
-	cur = con.cursor()   
-	cur.execute("INSERT INTO builds(dummy) VALUES(42)")
-	con.commit()
-	cur.execute("SELECT last_insert_rowid()")
-	buildid = cur.fetchone()[0]
-	return buildid
+	return str(num)
 
 
 
 def get_build_file_that_ends_in(buildid, suffix):
-	contents = listdir(conf['dir']['result']%buildid)
+	contents = listdir(conf['dir']['result'] + buildid)
 	cantidates = [s for s in contents if s.endswith(suffix)]
 	if len(cantidates):
-		return cantidates[0], conf['dir']['result'] % buildid
+		return cantidates[0], conf['dir']['result'] + buildid
 	else:
 		return None
 
@@ -94,7 +84,7 @@ def build_callback(buildid, url, jobid, arch, os, release):
 
 def pbuilder_debuild(buildid, filepath, arch, release):
 	tgz = conf['path']['basetgz'] % (arch, release)
-	dir_result = conf['dir']['result'] % str(buildid)
+	dir_result = conf['dir']['result'] + buildid
 	mkdir(dir_result)
 	chdir(filepath)
 	print(popen('pdebuild -- --architecture %s --basetgz %s --buildresult %s' % (arch, tgz, dir_result)).read())
@@ -150,7 +140,3 @@ def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 
 	else:
 		print('Unsupported os: ' + os)
-
-
-
-_db_create_environment() #Run on load
