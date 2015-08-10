@@ -65,9 +65,9 @@ def post(url, postdata):
 
 def build_callback(buildid, url, jobid, arch, os, release):
 	location = conf['address'] + 'build/%s/' % buildid
-	success = False
+	success = 0
 	if get_build_file_that_ends_in(buildid, '.deb'):
-		success = True
+		success = 1
 
 	data = {
 		'success' : success,
