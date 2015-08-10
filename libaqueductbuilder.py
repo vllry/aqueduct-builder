@@ -40,7 +40,7 @@ def new_buildid():
 		else:
 			break
 
-	return str(num)
+	return str(num+1)
 
 
 
