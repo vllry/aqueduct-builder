@@ -2,10 +2,12 @@
 
 from threading import Thread
 import json
+from queue import Full
 from sys import exit
-from os import getuid
+from os import getuid, mkdir, remove
 from bottle import route, run, request, static_file, abort
 
+import libaqueduct as lib
 import libaqueductbuilder as builder
 
 
@@ -16,12 +18,15 @@ conf = builder.conf
 
 @route('/', method='GET')
 def get_info():
+	cur = builder.CurrentBuild()
 	info = {
-		'service' : 'aqueduct-builder',
-		'name' : conf['name'],
-		'version' : '{{VERSION}}',
-		'arch' : builder.get_arch(),
-		'os' : builder.get_os()
+		'service': 'aqueduct-builder',
+		'name': conf['name'],
+		'version': '{{VERSION}}',
+		'arch': builder.get_arch(),
+		'os': builder.get_os(),
+		'queue': buildqueue.list(),
+		'building': cur.dictionary
 		}
 	return json.dumps(info)
 
@@ -53,8 +58,16 @@ def build_submit():
 	buildid = builder.new_buildid()
 	path_to_source = conf['dir']['intake'] + upload.filename
 
-	t = Thread(target=builder.pkg_build, args=(buildid,callbackurl,jobid,arch,os,release,path_to_source,))
-	t.start()
+	try:
+		buildqueue.enqueue_nowait({'buildid': buildid, 'jobid': jobid, 'arch': arch, 'os': os, 'release': release, 'source': path_to_source, 'callbackurl': callbackurl})
+	except Full:
+		remove(path_to_source)
+		return {
+			'success': False,
+			'message': 'Job queue is full'
+			}
+	else:
+		mkdir(conf['dir']['result'] + buildid) #Make the build dir, since we've now associated the id with the task, and the dirs are used to determine ids
 
 	return {
 			'success': True,
@@ -113,4 +126,8 @@ def get_build_changes(buildid):
 if getuid() != 0:
 	print('Please run aqueduct-builder as root')
 	exit(1)
+
+buildqueue = lib.PriorityQueue()
+builder_thread = Thread(target=builder.daemon, args=(buildqueue,))
+builder_thread.start()
 run(host='', port=conf['port'], debug=True)

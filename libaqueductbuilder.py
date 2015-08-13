@@ -2,7 +2,9 @@ import json
 from platform import dist, uname
 import requests
 import tarfile
-from os import path, popen, remove, chdir, mkdir, listdir
+from os import path, popen, remove, chdir, listdir
+
+from libaqueduct import Singleton
 
 
 
@@ -34,13 +36,13 @@ def new_buildid():
 	num = 1
 	for i in sorted(ids, reverse=True):
 		try: #Protect against errors caused by nonnumber items
-			num = int(i)
+			num = int(i) + 1
 		except ValueError:
 			pass
 		else:
 			break
 
-	return str(num+1)
+	return str(num)
 
 
 
@@ -85,7 +87,6 @@ def build_callback(buildid, url, jobid, arch, os, release):
 def pbuilder_debuild(buildid, filepath, arch, release):
 	tgz = conf['path']['basetgz'] % (arch, release)
 	dir_result = conf['dir']['result'] + buildid
-	mkdir(dir_result)
 	chdir(filepath)
 	print(popen('pdebuild -- --architecture %s --basetgz %s --buildresult %s' % (arch, tgz, dir_result)).read())
 
@@ -140,3 +141,19 @@ def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 
 	else:
 		print('Unsupported os: ' + os)
+
+
+
+class CurrentBuild(metaclass=Singleton):
+	def __init__(self):
+		self.dictionary = {}
+
+
+
+def daemon(q):
+	cur = CurrentBuild()
+	while True:
+		b = q.dequeue() #Block and wait for a job
+		cur.dictionary = b
+		pkg_build(b['buildid'], b['callbackurl'], b['jobid'], b['arch'], b['os'], b['release'], b['source'])
+		cur.dictionary = {}
