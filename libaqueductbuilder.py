@@ -32,17 +32,21 @@ def get_arch():
 
 
 def new_buildid():
-	ids = listdir(conf['dir']['result'])
-	num = 1
-	for i in sorted(ids, reverse=True):
-		try: #Protect against errors caused by nonnumber items
-			num = int(i) + 1
-		except ValueError:
-			pass
-		else:
-			break
-
-	return str(num)
+	try:
+		f = open(conf['path']['buildid'], 'r')
+		num_str = f.read()
+		f.close()
+	except:
+		f = open(conf['path']['buildid'], 'w')
+		f.write('1')
+		f.close()
+		return '1'
+	else:
+		num = int(num_str) + 1
+		f = open(conf['path']['buildid'], 'w')
+		f.write(str(num))
+		f.close()
+		return str(num)
 
 
 

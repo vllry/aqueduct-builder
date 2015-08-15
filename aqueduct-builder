@@ -25,9 +25,10 @@ def get_info():
 		'version': '{{VERSION}}',
 		'arch': builder.get_arch(),
 		'os': builder.get_os(),
-		'queue': buildqueue.list(),
-		'building': cur.dictionary
-		}
+		'queue': buildqueue.list(), #Need to not show callbackurl
+		'building': cur.dictionary,
+		'releases': ['vivid']
+	}
 	return json.dumps(info)
 
 
@@ -54,9 +55,10 @@ def build_submit():
 	elif not release:
 		return {'success': False, 'message': 'No release supplied'}
 
-	upload.save(conf['dir']['intake'])
 	buildid = builder.new_buildid()
-	path_to_source = conf['dir']['intake'] + upload.filename
+	mkdir(conf['dir']['intake']+buildid)
+	upload.save(conf['dir']['intake']+buildid)
+	path_to_source = conf['dir']['intake'] + buildid + '/' + upload.filename
 
 	try:
 		buildqueue.enqueue_nowait({'buildid': buildid, 'jobid': jobid, 'arch': arch, 'os': os, 'release': release, 'source': path_to_source, 'callbackurl': callbackurl})
