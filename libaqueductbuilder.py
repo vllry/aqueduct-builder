@@ -110,7 +110,7 @@ def pbuilder_basetgz_create(arch, release):
 
 def pbuilder_basetgz_update(arch, release):
 	tgz = conf['path']['basetgz'] % (arch, release)
-	print(popen('pbuilder --update --architecture %s --distribution %s --basetgz %s' % (arch, release, tgz)).read())
+	print(popen('pbuilder --update --architecture %s --distribution %s --basetgz %s --override-config' % (arch, release, tgz)).read())
 
 
 
@@ -137,6 +137,7 @@ def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 			print("Creating basetgz for %s, %s" % (build_arch, release))
 			pbuilder_basetgz_create(build_arch, release)
 		else:
+			print("Updating basetgz")
 			pbuilder_basetgz_update(build_arch, release)
 
 		print('Running debuild')
