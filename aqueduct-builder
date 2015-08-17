@@ -27,7 +27,7 @@ def get_info():
 		'os': builder.get_os(),
 		'queue': buildqueue.list(), #Need to not show callbackurl
 		'building': cur.dictionary,
-		'releases': ['vivid']
+		'releases': builder.get_releases_and_arches()
 	}
 	return json.dumps(info)
 

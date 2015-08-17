@@ -3,6 +3,7 @@ from platform import dist, uname
 import requests
 import tarfile
 from os import path, popen, remove, chdir, listdir
+from re import search
 
 from libaqueduct import Singleton
 
@@ -28,6 +29,16 @@ def get_arch():
 	elif arch == 'x86_64':
 		arch = 'amd64'
 	return arch
+
+
+
+def get_releases_and_arches():
+	releases = []
+	for fname in listdir('/var/cache/pbuilder'):
+		if search('([\S])+-([\S])+.base.tgz', fname):
+			s = fname.rstrip('.base.tgz').split('-')
+			releases.append((s[1], s[0]))
+	return releases
 
 
 
