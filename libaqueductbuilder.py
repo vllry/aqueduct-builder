@@ -5,7 +5,7 @@ import tarfile
 from os import path, popen, remove, chdir, listdir
 from re import search
 
-from libaqueduct import Singleton
+from libaqueduct import Singleton, targz
 
 
 
@@ -101,7 +101,7 @@ def build_callback(buildid, url, jobid, arch, os, release):
 
 def pbuilder_debuild(buildid, filepath, arch, release):
 	tgz = conf['path']['basetgz'] % (arch, release)
-	dir_result = conf['dir']['result'] + buildid
+	dir_result = conf['dir']['buildfiles'] + buildid
 	chdir(filepath)
 	print(popen('pdebuild -- --architecture %s --basetgz %s --buildresult %s' % (arch, tgz, dir_result)).read())
 
@@ -153,6 +153,7 @@ def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 
 		print('Running debuild')
 		pbuilder_debuild(buildid, filepath, build_arch, release)
+		targz(conf['dir']['buildfiles']+buildid+'/*', conf['dir']['result']+jobid+'/result.tar.gz')
 		build_callback(buildid, callbackurl, jobid, arch, os, release)
 
 	else:
