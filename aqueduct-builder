@@ -11,9 +11,8 @@ import libaqueduct as lib
 import libaqueductbuilder as builder
 
 
-
 conf = builder.conf
-
+gpg = lib.GPG()
 
 
 @route('/', method='GET')
@@ -30,7 +29,6 @@ def get_info():
 		'releases': builder.get_releases_and_arches()
 	}
 	return json.dumps(info)
-
 
 
 @route('/build/submit', method='POST')
@@ -78,7 +76,6 @@ def build_submit():
 	}
 
 
-
 @route('/build/<buildid>')
 def get_build_log(buildid):
 	result = """
@@ -95,11 +92,9 @@ def get_build_log(buildid):
 	return result
 
 
-
 @route('/build/<buildid>/<path:path>')
 def get_build_log(buildid, path):
 	return static_file(path, root = conf['dir']['result'] + buildid)
-
 
 
 if getuid() != 0:
@@ -110,12 +105,14 @@ buildqueue = lib.PriorityQueue()
 builder_thread = Thread(target=builder.daemon, args=(buildqueue,))
 builder_thread.start()
 
+
 class StripPathMiddleware(object):
-  def __init__(self, app):
-    self.app = app
-  def __call__(self, e, h):
-    e['PATH_INFO'] = e['PATH_INFO'].rstrip('/')
-    return self.app(e,h)
+	def __init__(self, app):
+		self.app = app
+
+	def __call__(self, e, h):
+		e['PATH_INFO'] = e['PATH_INFO'].rstrip('/')
+		return self.app(e,h)
 
 app = app()
 myapp = StripPathMiddleware(app)

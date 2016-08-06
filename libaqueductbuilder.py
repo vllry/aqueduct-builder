@@ -8,18 +8,15 @@ from re import search
 from libaqueduct import Singleton, targz
 
 
-
 conf = json.load(open('aqueduct-builder.conf'))
 conf['address'] = conf['address'].rstrip('/') + ':' + str(conf['port']) + '/'
-for d in conf['dir']: #Ensure all dirs have a trailing slash
+for d in conf['dir']: # Ensure all dirs have a trailing slash
 	if conf['dir'][d][-1] != '/':
-		conf['dir'][d] = conf['dir'][d] + '/'
-
+		conf['dir'][d] += '/'
 
 
 def get_os():
 	return dist()[0].lower()
-
 
 
 def get_arch():
@@ -31,7 +28,6 @@ def get_arch():
 	return arch
 
 
-
 def get_releases_and_arches():
 	releases = []
 	for fname in listdir('/var/cache/pbuilder'):
@@ -39,7 +35,6 @@ def get_releases_and_arches():
 			s = fname.rstrip('.base.tgz').split('-')
 			releases.append((s[1], s[0]))
 	return releases
-
 
 
 def new_buildid():
@@ -60,7 +55,6 @@ def new_buildid():
 		return str(num)
 
 
-
 def get_build_file_that_ends_in(buildid, suffix):
 	contents = listdir(conf['dir']['result'] + buildid)
 	cantidates = [s for s in contents if s.endswith(suffix)]
@@ -68,7 +62,6 @@ def get_build_file_that_ends_in(buildid, suffix):
 		return cantidates[0], conf['dir']['result'] + buildid
 	else:
 		return None
-
 
 
 def post(url, postdata):
@@ -79,7 +72,6 @@ def post(url, postdata):
 	return r.text
 
 
-
 def build_callback(buildid, url, jobid, arch, os, release):
 	location = conf['address'] + 'build/%s/' % buildid
 	success = 0
@@ -87,16 +79,15 @@ def build_callback(buildid, url, jobid, arch, os, release):
 		success = 1
 
 	data = {
-		'success' : success,
-		'location' : location,
-		'jobid' : jobid,
-		'arch' : arch,
-		'os' : os,
-		'release' : release
+		'success': success,
+		'location': location,
+		'jobid': jobid,
+		'arch': arch,
+		'os': os,
+		'release': release
 	}
 	print("Sending callback to " + url)
 	post(url, data)
-
 
 
 def pbuilder_debuild(buildid, filepath, arch, release):
@@ -106,11 +97,9 @@ def pbuilder_debuild(buildid, filepath, arch, release):
 	print(popen('pdebuild -- --architecture %s --basetgz %s --buildresult %s' % (arch, tgz, dir_result)).read())
 
 
-
 def pbuilder_basetgz_exists(arch, release):
 	tgz = conf['path']['basetgz'] % (arch, release)
 	return path.exists(tgz)
-
 
 
 def pbuilder_basetgz_create(arch, release):
@@ -118,21 +107,18 @@ def pbuilder_basetgz_create(arch, release):
 	print(popen('pbuilder --create --architecture %s --distribution %s --basetgz %s' % (arch, release, tgz)).read())
 
 
-
 def pbuilder_basetgz_update(arch, release):
 	tgz = conf['path']['basetgz'] % (arch, release)
 	print(popen('pbuilder --update --architecture %s --distribution %s --basetgz %s --override-config' % (arch, release, tgz)).read())
-
 
 
 def untar(filepath, dest):
 	tfile = tarfile.open(filepath, 'r:gz')
 	tfile.extractall(dest)
 	name = tfile.getnames()[0]
-	tfile.close() #?
+	tfile.close() # ?
 	remove(filepath)
 	return name
-
 
 
 def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
@@ -160,17 +146,15 @@ def pkg_build(buildid, callbackurl, jobid, arch, os, release, filepath):
 		print('Unsupported os: ' + os)
 
 
-
 class CurrentBuild(metaclass=Singleton):
 	def __init__(self):
 		self.dictionary = {}
 
 
-
 def daemon(q):
 	cur = CurrentBuild()
 	while True:
-		b = q.dequeue() #Block and wait for a job
+		b = q.dequeue() # Block and wait for a job
 		cur.dictionary = b
 		pkg_build(b['buildid'], b['callbackurl'], b['jobid'], b['arch'], b['os'], b['release'], b['source'])
 		cur.dictionary = {}
